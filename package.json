@@ -1,0 +1,54 @@
+{
+  "name": "@verndale/commit-ai",
+  "version": "1.0.0",
+  "description": "AI-assisted conventional commits with bundled commitlint — one install, aligned rules",
+  "license": "MIT",
+  "author": "Verndale",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/verndale/commit-ai.git"
+  },
+  "keywords": [
+    "commit",
+    "commitlint",
+    "conventional-commits",
+    "openai",
+    "git",
+    "husky"
+  ],
+  "type": "commonjs",
+  "main": "lib/commitlint-preset.cjs",
+  "exports": {
+    ".": "./lib/commitlint-preset.cjs",
+    "./rules": "./lib/rules.js"
+  },
+  "bin": {
+    "commit-ai": "bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "README.md",
+    "LICENSE"
+  ],
+  "packageManager": "pnpm@10.11.0",
+  "engines": {
+    "node": ">=24.14.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "lint:commit": "commitlint --edit .git/COMMIT_EDITMSG --config lib/commitlint-preset.cjs",
+    "prepublishOnly": "node -e \"require('./lib/rules.js'); require('./lib/commitlint-preset.cjs');\""
+  },
+  "dependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
+    "@commitlint/lint": "^20.5.0",
+    "@commitlint/load": "^20.5.0",
+    "@commitlint/parse": "^20.5.0",
+    "dotenv": "^16.4.7",
+    "openai": "^6.33.0"
+  }
+}
