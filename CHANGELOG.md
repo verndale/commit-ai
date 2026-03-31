@@ -1,3 +1,28 @@
+# v1.3.0 — 2026-03-31
+
+## Highlights
+- commit: Merge pull request #6 from verndale/feat/env-files (766d58e)
+- feat(commit-ai): Add Husky hooks for commit message linting (dc28284)
+- chore(ci): Update npm to latest version for publishing (e0746a4)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Features
+- feat(commit-ai): Add Husky hooks for commit message linting (dc28284)
+
+### Chore
+- chore(ci): Update npm to latest version for publishing (e0746a4)
+
+### Other (unknown)
+- commit: Merge pull request #6 from verndale/feat/env-files (766d58e)
+
+## Full commit list
+- 766d58e commit: Merge pull request #6 from verndale/feat/env-files
+- dc28284 feat(commit-ai): Add Husky hooks for commit message linting
+- e0746a4 chore(ci): Update npm to latest version for publishing
+
 # v1.2.0 — 2026-03-31
 
 ## Highlights
