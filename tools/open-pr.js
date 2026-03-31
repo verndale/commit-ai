@@ -14,7 +14,7 @@
 
 "use strict";
 
-require("dotenv").config();
+require("../lib/load-project-env.js").loadProjectEnv();
 
 const { execSync } = require("node:child_process");
 const { buildChangesByTypeMarkdown, parseHeader } = require("./lib/conventional-notes.js");

@@ -16,7 +16,7 @@ pnpm add -D @verndale/commit-ai
 ## Environment
 
 - **`OPENAI_API_KEY`** — Required for `commit-ai run` (and for AI-filled `prepare-commit-msg` when you want the model). Optional `COMMIT_AI_MODEL` (default `gpt-4o-mini`).
-- The CLI loads **`.env`** from the current working directory (project root).
+- The CLI loads **`.env`** then **`.env.local`** from the current working directory (project root); values in `.env.local` override `.env` for the same key.
 - **Optional tooling** (see [`.env.example`](./.env.example)): `PR_*` for [`tools/open-pr.js`](./tools/open-pr.js) / the **Create or update PR** workflow; `RELEASE_NOTES_AI_*` for the semantic-release notes plugin. Use a GitHub PAT as **`GH_TOKEN`** (or `GITHUB_TOKEN`) when calling the GitHub API outside Actions.
 
 ## Commit policy (v2)
@@ -101,7 +101,7 @@ corepack enable
 pnpm install
 ```
 
-Copy `.env.example` to `.env` and set **`OPENAI_API_KEY`**. After staging, **`pnpm commit`** runs this repo’s CLI (`node ./bin/cli.js run`; the published package exposes `commit-ai` in `node_modules/.bin` for dependents). Hooks under `.husky/` call **`pnpm exec commit-ai`** from this checkout.
+Copy `.env.example` to `.env` and/or `.env.local` and set **`OPENAI_API_KEY`**. After staging, **`pnpm commit`** runs this repo’s CLI (`node ./bin/cli.js run`; the published package exposes `commit-ai` in `node_modules/.bin` for dependents). Hooks under `.husky/` call **`pnpm exec commit-ai`** from this checkout.
 
 ### Repository automation
 

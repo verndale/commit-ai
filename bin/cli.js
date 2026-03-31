@@ -5,7 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const { spawnSync } = require("child_process");
 
-require("dotenv").config({ path: path.join(process.cwd(), ".env") });
+require("../lib/load-project-env.js").loadProjectEnv();
 
 const { generateAndValidate } = require("../lib/core/generate.js");
 const {
@@ -38,6 +38,8 @@ Commands:
 Environment:
   OPENAI_API_KEY       Required for AI generation on \`run\` (and for prepare-commit-msg when you want AI).
   COMMIT_AI_MODEL      Optional OpenAI model (default: gpt-4o-mini).
+
+Loads \`.env\` then \`.env.local\` from the current working directory (\`.env.local\` overrides).
 `);
 }
 
