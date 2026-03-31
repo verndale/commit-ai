@@ -1,3 +1,39 @@
+# v1.2.0 — 2026-03-31
+
+## Highlights
+- commit: Merge pull request #5 from verndale/feat/env-files (3e9d2f0)
+- chore(commit-ai): Remove unused push.js file (f226504)
+- feat(commit-ai): Add initial implementation of push functionality (711d520)
+- chore(lib): Update environment loading mechanism (36978e5)
+- commit: Merge pull request #4 from verndale/feat/pr-fix (3df113d)
+- ci(ci): Update commitlint workflow conditions (e0a509f)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Features
+- feat(commit-ai): Add initial implementation of push functionality (711d520)
+
+### CI
+- ci(ci): Update commitlint workflow conditions (e0a509f)
+
+### Chore
+- chore(commit-ai): Remove unused push.js file (f226504)
+- chore(lib): Update environment loading mechanism (36978e5)
+
+### Other (unknown)
+- commit: Merge pull request #4 from verndale/feat/pr-fix (3df113d)
+- commit: Merge pull request #5 from verndale/feat/env-files (3e9d2f0)
+
+## Full commit list
+- 3e9d2f0 commit: Merge pull request #5 from verndale/feat/env-files
+- f226504 chore(commit-ai): Remove unused push.js file
+- 711d520 feat(commit-ai): Add initial implementation of push functionality
+- 36978e5 chore(lib): Update environment loading mechanism
+- 3df113d commit: Merge pull request #4 from verndale/feat/pr-fix
+- e0a509f ci(ci): Update commitlint workflow conditions
+
 # v1.1.1 — 2026-03-31
 
 ## Highlights
