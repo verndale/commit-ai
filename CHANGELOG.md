@@ -1,3 +1,28 @@
+# v1.1.1 — 2026-03-31
+
+## Highlights
+- commit: Merge pull request #3 from verndale/feat/pr-fix (dac628c)
+- fix(commit-ai): Remove obsolete test file (17dd664)
+- chore(commit-ai): Update README and package.json for clarity (a144779)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Fixes
+- fix(commit-ai): Remove obsolete test file (17dd664)
+
+### Chore
+- chore(commit-ai): Update README and package.json for clarity (a144779)
+
+### Other (unknown)
+- commit: Merge pull request #3 from verndale/feat/pr-fix (dac628c)
+
+## Full commit list
+- dac628c commit: Merge pull request #3 from verndale/feat/pr-fix
+- 17dd664 fix(commit-ai): Remove obsolete test file
+- a144779 chore(commit-ai): Update README and package.json for clarity
+
 # v1.1.0 — 2026-03-31
 
 ## Highlights

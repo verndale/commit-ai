@@ -1,6 +1,6 @@
 {
   "name": "@verndale/commit-ai",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "AI-assisted conventional commits with bundled commitlint — one install, aligned rules",
   "license": "MIT",
   "author": "Verndale",
