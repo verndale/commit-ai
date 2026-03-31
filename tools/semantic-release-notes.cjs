@@ -1,6 +1,6 @@
 "use strict";
 
-require("dotenv").config();
+require("../lib/load-project-env.js").loadProjectEnv();
 
 const { buildDeterministicReleaseNotes } = require("./lib/conventional-notes.js");
 
