@@ -21,17 +21,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.11.0
-
+      # Org policy: only GitHub + org-owned actions — Corepack + actions/cache (no pnpm/action-setup).
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "24.14.0"
-          cache: pnpm
           registry-url: "https://registry.npmjs.org"
+
+      - name: Enable pnpm via Corepack
+        run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
