@@ -14,7 +14,7 @@ const {
   commitFromFile,
 } = require("../lib/core/git.js");
 const { getProviderNames, hasApiKey } = require("../lib/providers/index.js");
-const { formatCommitMessage, ok, warn: fmtWarn, fail, info, createSpinner, bold, dim, cyan, green } = require("../lib/core/format.js");
+const { formatCommitMessage, ok, warn: fmtWarn, fail, info, createSpinner, bold, dim, green } = require("../lib/core/format.js");
 const { interactiveCommit } = require("../lib/core/interactive.js");
 
 function presetPath() {
