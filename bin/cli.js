@@ -13,6 +13,7 @@ const {
   hasStagedChanges,
   commitFromFile,
 } = require("../lib/core/git.js");
+const { mergeAiCommitEnvFile } = require("../lib/init-env.js");
 
 const PREPARE_COMMIT_MSG_HOOK = `#!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
@@ -45,7 +46,7 @@ Usage:
 
 Commands:
   run                  Generate a message from the staged diff and run git commit.
-  init                 Copy bundled \`.env.example\` to \`.env\`; optional \`--husky\` to add Husky hooks.
+  init                 Add bundled env keys to \`.env\` (and \`.env.example\` if present) without removing lines; \`--force\` replaces \`.env\` with the template.
   prepare-commit-msg   Git hook: fill an empty commit message file (merge/squash skipped).
   lint                 Run commitlint with the package default config (for commit-msg hook).
 
@@ -88,11 +89,44 @@ function cmdInit(argv) {
   }
 
   const envDest = path.join(cwd, ".env");
-  if (fs.existsSync(envDest) && !force) {
-    process.stderr.write("Skipped .env (already exists). Use --force to overwrite.\n");
-  } else {
-    fs.copyFileSync(examplePath, envDest);
-    process.stdout.write(`Wrote ${path.relative(cwd, envDest) || ".env"} from package template.\n`);
+  const envResult = mergeAiCommitEnvFile(envDest, examplePath, { force });
+  const envRel = path.relative(cwd, envDest) || ".env";
+  switch (envResult.kind) {
+    case "replaced":
+      process.stdout.write(`Replaced ${envRel} with bundled template (--force).\n`);
+      break;
+    case "wrote":
+      process.stdout.write(`Wrote ${envRel} from bundled template.\n`);
+      break;
+    case "merged":
+      process.stdout.write(`Appended missing @verndale/ai-commit keys to ${envRel}.\n`);
+      break;
+    case "unchanged":
+      process.stdout.write(
+        `No missing @verndale/ai-commit keys in ${envRel}; left unchanged. Use --force to replace the file with the bundled template.\n`,
+      );
+      break;
+    default:
+      break;
+  }
+
+  const envExampleDest = path.join(cwd, ".env.example");
+  if (fs.existsSync(envExampleDest)) {
+    const exResult = mergeAiCommitEnvFile(envExampleDest, examplePath, { force: false });
+    const exRel = path.relative(cwd, envExampleDest) || ".env.example";
+    switch (exResult.kind) {
+      case "wrote":
+        process.stdout.write(`Wrote ${exRel} from bundled template.\n`);
+        break;
+      case "merged":
+        process.stdout.write(`Appended missing @verndale/ai-commit keys to ${exRel}.\n`);
+        break;
+      case "unchanged":
+        process.stdout.write(`No missing @verndale/ai-commit keys in ${exRel}; left unchanged.\n`);
+        break;
+      default:
+        break;
+    }
   }
 
   if (!husky) {

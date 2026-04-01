@@ -18,18 +18,18 @@ The same package works with **npm** or **yarn** (for example `npm install -D @ve
 ## Quick setup (deterministic order)
 
 1. **Install** the dev dependency (see [Install](#install)).
-2. **Env template** — Either run **`pnpm exec ai-commit init`** (writes `.env` from the bundled template), or copy the file yourself:  
-   `cp node_modules/@verndale/ai-commit/.env.example .env`  
-   (Shipped template lists only **`OPENAI_API_KEY`** and optional **`COMMIT_AI_MODEL`** — see [`.env.example`](.env.example).)
+2. **Env template** — Either run **`pnpm exec ai-commit init`** (adds any missing **`OPENAI_API_KEY`** / **`COMMIT_AI_MODEL`** lines to `.env` and to **`.env.example`** if that file already exists, without removing other entries; each key ships with a `# @verndale/ai-commit — …` line above it — see [`.env.example`](.env.example). If a key is already present for another tool, **init** inserts that line **under** their comments, not instead of them), or copy the file yourself:  
+   `cp node_modules/@verndale/ai-commit/.env.example .env`
 3. **Secrets** — Set **`OPENAI_API_KEY`** in `.env` and/or `.env.local` (`.env.local` overrides `.env` for duplicate keys).
 4. **Script** — Add a `commit` script (see [package.json scripts](#packagejson-scripts-example)).
 5. **Husky** — Install [Husky](https://typicode.github.io/husky/) in the repo (`husky` + `"prepare": "husky"` in `package.json` if needed), run **`pnpm exec husky init`**, then either run **`pnpm exec ai-commit init --husky`** or add the hook files manually ([Husky (manual setup)](#husky-manual-setup)).
 
-Use **`ai-commit init --force`** to overwrite an existing `.env` or hook files.
+Use **`ai-commit init --force`** to replace **`.env`** with the bundled template (destructive) or to overwrite existing Husky hook files. **`init` does not** fully replace a committed **`.env.example`**; it only appends missing ai-commit keys there.
 
 ## Environment
 
 - **`OPENAI_API_KEY`** — Required for `ai-commit run` (and for AI-filled `prepare-commit-msg` when you want the model). Optional `COMMIT_AI_MODEL` (default `gpt-4o-mini`).
+- **Shared env vars** — If another tool already documents **`OPENAI_API_KEY`** or **`COMMIT_AI_MODEL`**, **`ai-commit init`** adds its own `# @verndale/ai-commit — …` line immediately above the assignment when missing; it does not remove or replace existing comment lines.
 - The CLI loads **`.env`** then **`.env.local`** from the current working directory (project root); values in `.env.local` override `.env` for the same key.
 - **Optional tooling:** `PR_*` env vars for [`@verndale/ai-pr`](https://www.npmjs.com/package/@verndale/ai-pr) (`pnpm open-pr` in this repo) / the **Create or update PR** workflow; `RELEASE_NOTES_AI_*` for [`tools/semantic-release-notes.cjs`](./tools/semantic-release-notes.cjs). Use a GitHub PAT as **`GH_TOKEN`** (or `GITHUB_TOKEN`) when calling the GitHub API outside Actions.
 
@@ -50,7 +50,7 @@ Use **`ai-commit init --force`** to overwrite an existing `.env` or hook files.
 | Command | Purpose |
 | --- | --- |
 | `ai-commit run` | Generate a message from the staged diff and run `git commit`. |
-| `ai-commit init [--force] [--husky]` | Copy bundled `.env.example` to `.env`; with `--husky`, write Husky hooks (requires `husky init` first). |
+| `ai-commit init [--force] [--husky]` | Merge bundled env keys into `.env` (and `.env.example` if present); `--force` replaces `.env` only. With `--husky`, write Husky hooks (requires `husky init` first). |
 | `ai-commit prepare-commit-msg <file> [source]` | Git `prepare-commit-msg` hook: fill an empty message; skips `merge` / `squash`. |
 | `ai-commit lint --edit <file>` | Git `commit-msg` hook: run commitlint with this package’s default config. |
 
