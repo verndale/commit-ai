@@ -1,3 +1,28 @@
+# v2.2.0 — 2026-04-01
+
+## Highlights
+- commit: Merge pull request #12 from verndale/feat/det-install (6840669)
+- feat(cli): create and merge .env.example on init (c25c19b)
+- chore(cli): Update README and CLI for improved init clarity (65fc9ca)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Features
+- feat(cli): create and merge .env.example on init (c25c19b)
+
+### Chore
+- chore(cli): Update README and CLI for improved init clarity (65fc9ca)
+
+### Other (unknown)
+- commit: Merge pull request #12 from verndale/feat/det-install (6840669)
+
+## Full commit list
+- 6840669 commit: Merge pull request #12 from verndale/feat/det-install
+- c25c19b feat(cli): create and merge .env.example on init
+- 65fc9ca chore(cli): Update README and CLI for improved init clarity
+
 # v2.1.0 — 2026-04-01
 
 ## Highlights
