@@ -1,32 +1,24 @@
 "use strict";
 
-const OpenAI = require("openai");
+const { createProvider } = require("../../lib/providers/index.js");
 
 function isAiEnabled() {
   return (process.env.PR_AI || "").toLowerCase() === "true";
 }
 
-function requiredAiEnv(name) {
-  const v = process.env[name];
-  if (!v) throw new Error(`PR_AI is enabled but missing ${name}`);
-  return v;
-}
+function getPrProvider() {
+  const apiKey = process.env.PR_AI_API_KEY;
+  const endpoint = process.env.PR_AI_ENDPOINT;
+  if (!apiKey) throw new Error("PR_AI is enabled but missing PR_AI_API_KEY");
+  if (!endpoint) throw new Error("PR_AI is enabled but missing PR_AI_ENDPOINT");
 
-function normalizeOpenAIBaseUrl(endpoint) {
-  const u = new URL(endpoint);
-  let path = u.pathname.replace(/\/$/, "");
-  if (path.endsWith("/responses") || path.endsWith("/chat/completions")) {
-    path = path.replace(/\/[^/]+$/, "");
-    u.pathname = path || "/";
-  }
-  return u.toString().replace(/\/$/, "");
-}
-
-function getPrAiClient() {
-  const apiKey = requiredAiEnv("PR_AI_API_KEY");
-  const endpoint = requiredAiEnv("PR_AI_ENDPOINT");
-  const baseURL = normalizeOpenAIBaseUrl(endpoint);
-  return new OpenAI({ apiKey, baseURL });
+  const providerName = process.env.PR_AI_PROVIDER || "openai";
+  return createProvider({
+    provider: providerName,
+    apiKey,
+    baseUrl: endpoint,
+    model: process.env.PR_AI_MODEL || "gpt-4o-mini",
+  });
 }
 
 function extractAllowedShortHashes(commits) {
@@ -67,13 +59,12 @@ function replaceSummarySection(body, summaryBullets) {
 }
 
 async function generateAiSummary({ title, commits, fileChanges, allowedHashes }) {
-  const openai = getPrAiClient();
-  const model = process.env.PR_AI_MODEL || "gpt-4o-mini";
+  const provider = getPrProvider();
   const minBullets = Math.min(6, allowedHashes.length);
   const maxBullets = Math.min(12, allowedHashes.length);
   const targetBullets = Math.min(10, Math.ceil(allowedHashes.length * 0.8));
 
-  const system = [
+  const systemPrompt = [
     "You write pull request summaries for an enterprise repo.",
     "You MUST NOT invent changes, files, or behaviors.",
     "You may ONLY summarize what is present in the provided commits and file list.",
@@ -89,7 +80,7 @@ async function generateAiSummary({ title, commits, fileChanges, allowedHashes })
   const fileList = fileChanges.files.map(f => `- ${f.status} ${f.path}`).join("\n") || "- (none)";
   const diffStat = fileChanges.stat || "(no diff)";
 
-  const user = [
+  const userPrompt = [
     `PR Title: ${title}`,
     "",
     `Allowed short hashes: ${allowedHashes.join(", ")}`,
@@ -106,16 +97,7 @@ async function generateAiSummary({ title, commits, fileChanges, allowedHashes })
     "Write the PR Summary bullets now.",
   ].join("\n");
 
-  const response = await openai.chat.completions.create({
-    model,
-    temperature: 0,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
-  });
-
-  const text = response.choices?.[0]?.message?.content?.trim() || "";
+  const text = await provider.complete({ systemPrompt, userPrompt });
 
   const bullets = String(text)
     .split("\n")
@@ -127,10 +109,9 @@ async function generateAiSummary({ title, commits, fileChanges, allowedHashes })
 }
 
 async function generateAiLabelsAndChecklist({ title, body, commits }) {
-  const openai = getPrAiClient();
-  const model = process.env.PR_AI_MODEL || "gpt-4o-mini";
+  const provider = getPrProvider();
 
-  const system = [
+  const systemPrompt = [
     "You suggest GitHub PR labels and a short review checklist for the author/CI.",
     "Output ONLY valid markdown in this exact structure (no extra text):",
     "## Suggested labels / Review checklist",
@@ -144,7 +125,7 @@ async function generateAiLabelsAndChecklist({ title, body, commits }) {
   ].join("\n");
 
   const commitList = commits.map(c => `- ${c.hash.slice(0, 7)} ${c.subjectLine}`).join("\n");
-  const user = [
+  const userPrompt = [
     `PR Title: ${title}`,
     "",
     "PR body (excerpt):",
@@ -156,16 +137,7 @@ async function generateAiLabelsAndChecklist({ title, body, commits }) {
     'Output the "Suggested labels / Review checklist" section only.',
   ].join("\n");
 
-  const response = await openai.chat.completions.create({
-    model,
-    temperature: 0,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
-  });
-
-  const text = response.choices?.[0]?.message?.content?.trim() || "";
+  const text = await provider.complete({ systemPrompt, userPrompt });
   const trimmed = String(text).trim();
   if (!trimmed) return "";
   return trimmed.startsWith("## ") ? trimmed : `## Suggested labels / Review checklist\n\n${trimmed}`;
