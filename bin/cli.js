@@ -10,22 +10,18 @@ require("../lib/load-project-env.js").loadProjectEnv();
 const { generateAndValidate } = require("../lib/core/generate.js");
 const {
   assertInGitRepo,
+  isInGitRepo,
   hasStagedChanges,
   commitFromFile,
 } = require("../lib/core/git.js");
 const { mergeAiCommitEnvFile } = require("../lib/init-env.js");
-
-const PREPARE_COMMIT_MSG_HOOK = `#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-pnpm exec ai-commit prepare-commit-msg "$1" "$2"
-`;
-
-const COMMIT_MSG_HOOK = `#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-pnpm exec ai-commit lint --edit "$1"
-`;
+const {
+  detectPackageExec,
+  hookScript,
+  runHuskyInit,
+  mergePackageJsonForAiCommit,
+  warnIfPrepareMissingHusky,
+} = require("../lib/init-workspace.js");
 
 function presetPath() {
   return path.join(__dirname, "..", "lib", "commitlint-preset.cjs");
@@ -40,13 +36,13 @@ function printHelp() {
 
 Usage:
   ai-commit run
-  ai-commit init [--force] [--husky]
+  ai-commit init [--force] [--env-only] [--husky] [--workspace]
   ai-commit prepare-commit-msg <file> [source]
   ai-commit lint --edit <file>
 
 Commands:
   run                  Generate a message from the staged diff and run git commit.
-  init                 Add bundled env keys to \`.env\` (and \`.env.example\` if present) without removing lines; \`--force\` replaces \`.env\` with the template.
+  init                 Merge env, then Husky + package.json + hooks (from a git repo). \`--env-only\` stops after env files. \`--husky\` skips package.json. \`--force\` replaces \`.env\` / hooks.
   prepare-commit-msg   Git hook: fill an empty commit message file (merge/squash skipped).
   lint                 Run commitlint with the package default config (for commit-msg hook).
 
@@ -69,19 +65,27 @@ function parseLintArgv(argv) {
 function parseInitArgv(argv) {
   let force = false;
   let husky = false;
+  let workspace = false;
+  let envOnly = false;
   for (const a of argv) {
     if (a === "--force") {
       force = true;
     } else if (a === "--husky") {
       husky = true;
+    } else if (a === "--workspace") {
+      workspace = true;
+    } else if (a === "--env-only") {
+      envOnly = true;
     }
   }
-  return { force, husky };
+  return { force, husky, workspace, envOnly };
 }
 
 function cmdInit(argv) {
-  const { force, husky } = parseInitArgv(argv);
+  const { force, husky, workspace, envOnly } = parseInitArgv(argv);
   const cwd = process.cwd();
+  /** Full package.json merge: default on, or `--workspace`; off for `--husky` alone (legacy). */
+  const mergePackageJson = !husky || workspace;
   const examplePath = path.join(__dirname, "..", ".env.example");
 
   if (!fs.existsSync(examplePath)) {
@@ -129,17 +133,49 @@ function cmdInit(argv) {
     }
   }
 
-  if (!husky) {
+  if (envOnly) {
     return;
   }
 
-  assertInGitRepo(cwd);
-  const huskyHelper = path.join(cwd, ".husky", "_", "husky.sh");
-  if (!fs.existsSync(huskyHelper)) {
-    process.stderr.write(
-      "Husky is not initialized. Run `pnpm exec husky init` (or `npx husky init`) in this repo, then run `ai-commit init --husky` again.\n",
+  if (!isInGitRepo(cwd)) {
+    process.stdout.write(
+      "Not a git repository (or git unavailable); skipped Husky and package.json. Re-run from a repo root for hooks and scripts.\n",
     );
-    process.exit(1);
+    return;
+  }
+
+  const huskyHelper = path.join(cwd, ".husky", "_", "husky.sh");
+
+  if (!fs.existsSync(huskyHelper)) {
+    const r = runHuskyInit(cwd);
+    if (!r.ok) {
+      process.stderr.write(
+        r.error
+          ? `husky init failed: ${r.error}\n`
+          : `husky init failed (exit ${r.status ?? "unknown"}). Run \`npx husky init\` in this repo, then run ai-commit init again.\n`,
+      );
+      process.exit(1);
+    }
+    process.stdout.write("Ran `npx husky@9 init`.\n");
+  } else {
+    process.stdout.write(
+      "Husky already initialized (found .husky/_/husky.sh); skipped `npx husky@9 init`.\n",
+    );
+  }
+
+  if (mergePackageJson) {
+    const pkgPath = path.join(cwd, "package.json");
+    if (fs.existsSync(pkgPath)) {
+      const { changed } = mergePackageJsonForAiCommit(pkgPath);
+      if (changed) {
+        process.stdout.write(
+          "Updated package.json (commit script, prepare, and/or devDependencies.husky). Run your package manager install if you added dependencies.\n",
+        );
+      }
+      warnIfPrepareMissingHusky(pkgPath);
+    } else {
+      process.stdout.write("No package.json in this directory; skipped package.json merge (hooks still written).\n");
+    }
   }
 
   const huskyDir = path.join(cwd, ".husky");
@@ -147,13 +183,15 @@ function cmdInit(argv) {
     fs.mkdirSync(huskyDir, { recursive: true });
   }
 
+  const execPrefix = detectPackageExec(cwd);
   const preparePath = path.join(huskyDir, "prepare-commit-msg");
   const commitMsgPath = path.join(huskyDir, "commit-msg");
 
-  for (const [hookPath, body] of [
-    [preparePath, PREPARE_COMMIT_MSG_HOOK],
-    [commitMsgPath, COMMIT_MSG_HOOK],
+  for (const [hookPath, hookKind] of [
+    [preparePath, "prepare-commit-msg"],
+    [commitMsgPath, "commit-msg"],
   ]) {
+    const body = hookScript(execPrefix, hookKind);
     if (fs.existsSync(hookPath) && !force) {
       process.stderr.write(`Skipped ${path.relative(cwd, hookPath)} (already exists). Use --force to overwrite.\n`);
     } else {
