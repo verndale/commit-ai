@@ -76,7 +76,7 @@ function parseRunArgs(argv) {
 function parseLintArgv(argv) {
   const i = argv.indexOf("--edit");
   if (i === -1 || !argv[i + 1]) {
-    throw new Error("Missing --edit <file> (example: commit-ai lint --edit \"$1\")");
+    throw new Error("Missing --edit <file> (example: ai-commit lint --edit \"$1\")");
   }
   return { file: argv[i + 1] };
 }
@@ -281,7 +281,7 @@ async function main() {
     const file = argv[1];
     const source = argv[2];
     if (!file) {
-      throw new Error("Usage: commit-ai prepare-commit-msg <file> [source]");
+      throw new Error("Usage: ai-commit prepare-commit-msg <file> [source]");
     }
     await cmdPrepareCommitMsg(file, source);
     return;
