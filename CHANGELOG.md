@@ -1,3 +1,23 @@
+# v2.3.0 — 2026-04-01
+
+## Highlights
+- commit: Merge pull request #13 from verndale/feat/det-install (3ee031a)
+- feat(cli): Rename .env.example to .env-example for consistenc (0f0379f)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Features
+- feat(cli): Rename .env.example to .env-example for consistenc (0f0379f)
+
+### Other (unknown)
+- commit: Merge pull request #13 from verndale/feat/det-install (3ee031a)
+
+## Full commit list
+- 3ee031a commit: Merge pull request #13 from verndale/feat/det-install
+- 0f0379f feat(cli): Rename .env.example to .env-example for consistenc
+
 # v2.2.0 — 2026-04-01
 
 ## Highlights
