@@ -42,7 +42,7 @@ Usage:
 
 Commands:
   run                  Generate a message from the staged diff and run git commit.
-  init                 Merge env, then Husky + package.json + hooks (from a git repo). \`--env-only\` stops after env files. \`--husky\` skips package.json. \`--force\` replaces \`.env\` / hooks.
+  init                 Merge env, then Husky + package.json + hooks (from a git repo). \`--env-only\` stops after env files. \`--husky\` skips package.json. \`--force\` replaces \`.env\` / \`.env-example\` / hooks.
   prepare-commit-msg   Git hook: fill an empty commit message file (merge/squash skipped).
   lint                 Run commitlint with the package default config (for commit-msg hook).
 
@@ -86,10 +86,10 @@ function cmdInit(argv) {
   const cwd = process.cwd();
   /** Full package.json merge: default on, or `--workspace`; off for `--husky` alone (legacy). */
   const mergePackageJson = !husky || workspace;
-  const examplePath = path.join(__dirname, "..", ".env.example");
+  const examplePath = path.join(__dirname, "..", ".env-example");
 
   if (!fs.existsSync(examplePath)) {
-    throw new Error("Missing bundled .env.example (corrupt install?).");
+    throw new Error("Missing bundled .env-example (corrupt install?).");
   }
 
   const envDest = path.join(cwd, ".env");
@@ -114,9 +114,9 @@ function cmdInit(argv) {
       break;
   }
 
-  const envExampleDest = path.join(cwd, ".env.example");
+  const envExampleDest = path.join(cwd, ".env-example");
   const exResult = mergeAiCommitEnvFile(envExampleDest, examplePath, { force });
-  const exRel = path.relative(cwd, envExampleDest) || ".env.example";
+  const exRel = path.relative(cwd, envExampleDest) || ".env-example";
   switch (exResult.kind) {
     case "replaced":
       process.stdout.write(`Replaced ${exRel} with bundled template (--force).\n`);

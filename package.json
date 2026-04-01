@@ -28,7 +28,7 @@
   "files": [
     "bin",
     "lib",
-    ".env.example",
+    ".env-example",
     "README.md",
     "LICENSE"
   ],

@@ -18,13 +18,13 @@ The same package works with **npm** or **yarn** (for example `npm install -D @ve
 ## Quick setup (deterministic order)
 
 1. **Install** the dev dependency (see [Install](#install)).
-2. **Init** — From the **git repo root** (where **`package.json`** lives), run **`pnpm exec ai-commit init`**. That merges **`.env`** and **`.env.example`** (creates **`.env.example`** from the bundled template if it is missing; see [`.env.example`](.env.example) for keys and comments), runs **`npx husky@9 init`** if Husky is not present, adds missing **`commit`** / **`prepare`** / **`husky`** entries to **`package.json`** when the file exists, and writes **`.husky`** hooks. **Install dependencies** afterward if **`package.json`** changed (`pnpm install`, `npm install`, etc.).  
+2. **Init** — From the **git repo root** (where **`package.json`** lives), run **`pnpm exec ai-commit init`**. That merges **`.env`** and **`.env-example`** (creates **`.env-example`** from the bundled template if it is missing; see [`.env-example`](.env-example) for keys and comments), runs **`npx husky@9 init`** if Husky is not present, adds missing **`commit`** / **`prepare`** / **`husky`** entries to **`package.json`** when the file exists, and writes **`.husky`** hooks. **Install dependencies** afterward if **`package.json`** changed (`pnpm install`, `npm install`, etc.).  
    - Not in a git repo? **init** only updates env files and explains that Git/Husky were skipped.  
    - Env files only? Use **`pnpm exec ai-commit init --env-only`**.  
    - Hooks only (no **`package.json`** changes)? Use **`pnpm exec ai-commit init --husky`**.
 3. **Secrets** — Set **`OPENAI_API_KEY`** in `.env` and/or `.env.local` (`.env.local` overrides `.env` for duplicate keys).
 
-Use **`ai-commit init --force`** to replace **`.env`** and **`.env.example`** with the bundled template (destructive) or to overwrite existing Husky hook files. Without **`--force`**, **init** creates **`.env.example`** when missing and otherwise appends missing ai-commit keys (same as **`.env`**).
+Use **`ai-commit init --force`** to replace **`.env`** and **`.env-example`** with the bundled template (destructive) or to overwrite existing Husky hook files. Without **`--force`**, **init** creates **`.env-example`** when missing and otherwise appends missing ai-commit keys (same as **`.env`**). The published template file is **`.env-example`** (hyphen, not **`.env.example`**).
 
 ## Environment
 
@@ -50,7 +50,7 @@ Use **`ai-commit init --force`** to replace **`.env`** and **`.env.example`** wi
 | Command | Purpose |
 | --- | --- |
 | `ai-commit run` | Generate a message from the staged diff and run `git commit`. |
-| `ai-commit init [--force] [--env-only] [--husky] [--workspace]` | Merge env keys, then **`npx husky@9 init`** if needed, merge **`package.json`** when present, write hooks. **`--env-only`** stops after env files. **`--husky`** skips `package.json` (hooks + Husky only); use **`--husky --workspace`** to include **`package.json`** again. **`--force`** replaces `.env` / overwrites hooks. |
+| `ai-commit init [--force] [--env-only] [--husky] [--workspace]` | Merge env keys (including **`.env-example`**), then **`npx husky@9 init`** if needed, merge **`package.json`** when present, write hooks. **`--env-only`** stops after env files. **`--husky`** skips `package.json` (hooks + Husky only); use **`--husky --workspace`** to include **`package.json`** again. **`--force`** replaces `.env` / `.env-example` / overwrites hooks. |
 | `ai-commit prepare-commit-msg <file> [source]` | Git `prepare-commit-msg` hook: fill an empty message; skips `merge` / `squash`. |
 | `ai-commit lint --edit <file>` | Git `commit-msg` hook: run commitlint with this package’s default config. |
 
@@ -118,7 +118,7 @@ corepack enable
 pnpm install
 ```
 
-Copy `.env.example` to `.env` and/or `.env.local` and set **`OPENAI_API_KEY`**. After staging, **`pnpm commit`** runs this repo’s CLI (`node ./bin/cli.js run`; the published package exposes `ai-commit` in `node_modules/.bin` for dependents). Hooks under `.husky/` call **`pnpm exec ai-commit`** from this checkout.
+Copy **`.env-example`** to `.env` and/or `.env.local` and set **`OPENAI_API_KEY`**. After staging, **`pnpm commit`** runs this repo’s CLI (`node ./bin/cli.js run`; the published package exposes `ai-commit` in `node_modules/.bin` for dependents). Hooks under `.husky/` call **`pnpm exec ai-commit`** from this checkout.
 
 ### Repository automation
 
