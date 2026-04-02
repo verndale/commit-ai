@@ -25,7 +25,7 @@ pnpm add -D @verndale/ai-commit
 
 ## Setup
 
-Do these **in order** from your **git repository root** (the directory that contains `package.json`).
+Do these **in order** from the **app directory** where **`@verndale/ai-commit`** is installed — the folder that contains **`package.json`** (in a monorepo, that is often **not** the git repository root). Init updates **`.env`** / the example file there and installs hooks at the **git root** (with a `cd` in hook scripts when those paths differ).
 
 ### 1. Install the package
 
@@ -41,10 +41,13 @@ pnpm exec ai-commit init
 
 | Action | Detail |
 | --- | --- |
-| Env files | Merges **`.env`** and **`.env-example`**; creates **`.env-example`** from the bundled template if missing. Template reference: [`.env-example`](.env-example). |
-| Husky | Runs **`npx husky@9 init`** if Husky is not present. |
-| `package.json` | Adds missing **`commit`**, **`prepare`**, **`husky`** entries when the file exists. |
-| Hooks | Writes **`.husky`** hook files. |
+| Roots | **Package root** — walks up from the current directory toward the git root and uses the first directory that has **`package.json`** (if none, uses cwd). **Git root** — `git rev-parse --show-toplevel`. Env files and **`package.json`** use the package root; hooks use the git root. |
+| Env files | Merges **`.env`** and the **example env file** (see below). Keys already set in **`.env.local`** are treated as satisfied for the **`.env`** merge only (same as runtime load order). Init does not write **`.env.local`**. |
+| Example file | Uses **`.env.example`** if it exists; else **`.env-example`** if it exists; else creates **`.env.example`**. If both dot forms exist, init uses **`.env.example`** and prints a warning. The **bundled** template in the package remains [`.env-example`](.env-example) (hyphen). |
+| Husky | Runs **`npx husky@9 init`** at the **git root** if **`husky.sh`** is missing under the resolved hooks directory. |
+| Hooks directory | **`core.hooksPath`** relative to the git root when set; otherwise **`<git-root>/.husky`**. Falls back to **`.husky`** at the git root with a warning if the config path is invalid or outside the repo. |
+| `package.json` | Adds missing **`commit`**, **`prepare`**, **`husky`** entries when **`package.json`** exists at the package root. |
+| Hooks | Writes **`prepare-commit-msg`** and **`commit-msg`** in the hooks directory. If package root ≠ git root, each hook **`cd`s** into the package directory before **`pnpm exec ai-commit`** / **`npx`**. |
 
 If **`package.json`** changed, run **`pnpm install`** (or `npm install`) again.
 
@@ -59,17 +62,19 @@ Set **`OPENAI_API_KEY`** in **`.env`** and/or **`.env.local`**. Duplicate keys: 
 | Flag | Use when |
 | --- | --- |
 | *(none)* | Full setup: env files + Husky + hooks + `package.json` updates (when applicable). |
-| `--env-only` | You only want env / **`.env-example`** updates—no Git hooks. |
+| `--env-only` | You only want env / example-file updates—no Git hooks. |
 | `--husky` | Hooks + Husky only; skips **`package.json`** changes. Combine with **`--workspace`** if you need **`package.json`** merged again. |
-| `--force` | Replace **`.env`** and **`.env-example`** with the bundled template **(destructive)** and/or overwrite existing Husky hook files. |
+| `--force` | Replace **`.env`** and the resolved example file (see table above) with the bundled template **(destructive)** and/or overwrite existing Husky hook files. |
 
 **Edge cases**
 
 | Situation | Behavior |
 | --- | --- |
-| Not in a git repo | Init updates env files only and reports that Git/Husky were skipped. |
-| Template filename | The published file is **`.env-example`** (hyphen), not **`.env.example`**. |
-| Without **`--force`** | Missing **`.env-example`** is created; otherwise missing ai-commit keys are **appended** to **`.env`** (and the example file) without wiping the file. |
+| Not in a git repo | Init updates env files only (under cwd) and reports that Git/Husky were skipped. |
+| Monorepo (package not at git root) | Run **`ai-commit init`** from the app folder that has **`package.json`** and the dependency. Hooks live at the repo root; hook scripts change into the package directory before running **`ai-commit`**. |
+| **`.env.local`** | **`OPENAI_API_KEY`** / **`COMMIT_AI_MODEL`** there count as already present when merging **`.env`**, so init will not add duplicate placeholders for those keys. |
+| Bundled vs consumer example name | The npm package ships **`.env-example`** (hyphen) as the template source; the file init merges into on disk follows **`.env.example`** first, then **`.env-example`**, then default **`.env.example`**. |
+| Without **`--force`** | Missing example file is created (**`.env.example`** when neither exists); otherwise missing ai-commit keys are **appended** to **`.env`** and the example file without wiping them. |
 
 ---
 
@@ -124,7 +129,7 @@ pnpm exec ai-commit init --force
 | Command | Purpose |
 | --- | --- |
 | **`ai-commit run`** | Build a message from the staged diff and run **`git commit`**. |
-| **`ai-commit init`** | Env merge (including **`.env-example`**), Husky if needed, **`package.json`** when present, hooks. See [flags](#init-flags-and-shortcuts). |
+| **`ai-commit init`** | Env merge (**`.env`** + resolved example file; **`.env.local`** satisfies keys for the **`.env`** merge only), Husky at git root if needed, **`package.json`** at package root, hooks in **`core.hooksPath`** or **`.husky`**. See [flags](#init-flags-and-shortcuts). |
 | **`ai-commit prepare-commit-msg <file> [source]`** | Hook: fill an empty message; skips `merge` / `squash`. |
 | **`ai-commit lint --edit <file>`** | Hook: commitlint with this package’s default config. |
 
@@ -164,7 +169,7 @@ pnpm exec ai-commit prepare-commit-msg "$1" "$2"
 pnpm exec ai-commit lint --edit "$1"
 ```
 
-Hooks from **`init`** use **`pnpm exec ai-commit`** when **`pnpm-lock.yaml`** exists; otherwise **`npx --no ai-commit`**. Edit the files if you use another runner.
+Hooks from **`init`** use **`pnpm exec ai-commit`** when **`pnpm-lock.yaml`** exists in the **package root**; otherwise **`npx --no ai-commit`**. In a monorepo, generated hooks **`cd`** from the git root into that package directory first. Edit the files if you use another runner.
 
 **Already using Husky?** If **`.husky/_/husky.sh`** exists, **`init`** does not run **`npx husky@9 init`**. **`package.json`** is only amended for missing **`commit`**, **`prepare`**, or **`devDependencies.husky`**. Existing **`.husky/prepare-commit-msg`** and **`.husky/commit-msg`** are not overwritten unless you use **`ai-commit init --force`**.
 
