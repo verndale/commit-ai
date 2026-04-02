@@ -193,6 +193,87 @@ const rules = require("@verndale/ai-commit/rules");
 
 ---
 
+## GitHub Actions (CI snippet)
+
+Use **commitlint in your own workflow file** — nothing calls back to the `ai-commit` repository’s pipelines. After `pnpm add -D @verndale/ai-commit`, add a root **`commitlint.config.cjs`** (or `.js`) that **`extends: ["@verndale/ai-commit"]`** as in [commitlint without a second install](#commitlint-without-a-second-install). **`@commitlint/cli`** is already a dependency of this package, so `pnpm exec commitlint` works once dependencies are installed.
+
+Save as **`.github/workflows/commitlint.yml`** (or merge the job into an existing workflow). Adjust **`branches`** / **`branches-ignore`** if your default branch is not **`main`**.
+
+```yaml
+name: Commit message lint
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.14.0"
+
+      - name: Enable pnpm via Corepack
+        run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint PR title (squash merge becomes the commit on main)
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --verbose
+
+      - name: Lint commit messages (PR range)
+        if: github.event_name == 'pull_request'
+        run: |
+          pnpm exec commitlint \
+            --from "${{ github.event.pull_request.base.sha }}" \
+            --to "${{ github.event.pull_request.head.sha }}" \
+            --verbose
+
+      - name: Lint last commit (push)
+        if: github.event_name == 'push'
+        run: |
+          pnpm exec commitlint --from=HEAD~1 --to=HEAD --verbose
+```
+
+**Notes**
+
+| Topic | Detail |
+| --- | --- |
+| **Node** | Use a version that satisfies this package’s **`engines.node`** (see [Requirements](#requirements)). |
+| **npm or Yarn** | Replace the Corepack + pnpm steps with your install (`npm ci`, `yarn install --immutable`, etc.) and run **`npx --no commitlint`** or **`yarn exec commitlint`** instead of **`pnpm exec commitlint`**. |
+| **Config path** | If commitlint does not find your config (non-root monorepo, unusual filename), add **`--config path/to/commitlint.config.cjs`** to each **`commitlint`** invocation. |
+| **Alignment with hooks** | The same rules apply as for **`.husky/commit-msg`** when it runs **`ai-commit lint --edit`** — both use the **`@verndale/ai-commit`** preset. |
+
+---
+
 ## Development (this repository)
 
 ```bash
@@ -203,6 +284,8 @@ pnpm install
 Copy **`.env-example`** to `.env` / `.env.local` and set **`OPENAI_API_KEY`**. After staging, **`pnpm commit`** runs **`node ./bin/cli.js run`**; published installs use the **`ai-commit`** binary under **`node_modules/.bin`**. Local **`.husky`** hooks use **`pnpm exec ai-commit`**.
 
 ### Repository automation
+
+To run the same style of checks in **another** repository, copy the workflow in [GitHub Actions (CI snippet)](#github-actions-ci-snippet) (self-contained YAML; no call into this repo’s Actions).
 
 | Workflow | Trigger | Purpose |
 | --- | --- | --- |
