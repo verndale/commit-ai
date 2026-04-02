@@ -11,10 +11,13 @@ const { generateAndValidate } = require("../lib/core/generate.js");
 const {
   assertInGitRepo,
   isInGitRepo,
+  getGitRoot,
+  resolveGitHooksDir,
   hasStagedChanges,
   commitFromFile,
 } = require("../lib/core/git.js");
-const { mergeAiCommitEnvFile } = require("../lib/init-env.js");
+const { mergeAiCommitEnvFile, parseDotenvAssignedKeys } = require("../lib/init-env.js");
+const { resolveEnvExamplePath, findPackageRoot } = require("../lib/init-paths.js");
 const {
   detectPackageExec,
   hookScript,
@@ -42,7 +45,7 @@ Usage:
 
 Commands:
   run                  Generate a message from the staged diff and run git commit.
-  init                 Merge env, then Husky + package.json + hooks (from a git repo). \`--env-only\` stops after env files. \`--husky\` skips package.json. \`--force\` replaces \`.env\` / \`.env-example\` / hooks.
+  init                 Merge env, then Husky + package.json + hooks (from a git repo). \`--env-only\` stops after env files. \`--husky\` skips package.json. \`--force\` replaces \`.env\` / example env file / hooks (example path: existing \`.env.example\` or \`.env-example\`, default \`.env.example\`).
   prepare-commit-msg   Git hook: fill an empty commit message file (merge/squash skipped).
   lint                 Run commitlint with the package default config (for commit-msg hook).
 
@@ -86,14 +89,40 @@ function cmdInit(argv) {
   const cwd = process.cwd();
   /** Full package.json merge: default on, or `--workspace`; off for `--husky` alone (legacy). */
   const mergePackageJson = !husky || workspace;
-  const examplePath = path.join(__dirname, "..", ".env-example");
+  const bundledExamplePath = path.join(__dirname, "..", ".env-example");
 
-  if (!fs.existsSync(examplePath)) {
+  if (!fs.existsSync(bundledExamplePath)) {
     throw new Error("Missing bundled .env-example (corrupt install?).");
   }
 
-  const envDest = path.join(cwd, ".env");
-  const envResult = mergeAiCommitEnvFile(envDest, examplePath, { force });
+  const inGit = isInGitRepo(cwd);
+  const gitRoot = inGit ? getGitRoot(cwd) : null;
+  const packageRoot = findPackageRoot(cwd, gitRoot);
+
+  const extraAssignedKeys = new Set();
+  const envLocalPath = path.join(packageRoot, ".env.local");
+  if (fs.existsSync(envLocalPath)) {
+    const localContent = fs.readFileSync(envLocalPath, "utf8");
+    for (const k of parseDotenvAssignedKeys(localContent)) {
+      extraAssignedKeys.add(k);
+    }
+  }
+
+  if (
+    inGit &&
+    gitRoot &&
+    path.resolve(packageRoot) !== path.resolve(gitRoot)
+  ) {
+    process.stdout.write(
+      `Note: env files are updated under ${packageRoot}; Git hooks use the repository root ${gitRoot}.\n`,
+    );
+  }
+
+  const envDest = path.join(packageRoot, ".env");
+  const envResult = mergeAiCommitEnvFile(envDest, bundledExamplePath, {
+    force,
+    extraAssignedKeys,
+  });
   const envRel = path.relative(cwd, envDest) || ".env";
   switch (envResult.kind) {
     case "replaced":
@@ -114,9 +143,9 @@ function cmdInit(argv) {
       break;
   }
 
-  const envExampleDest = path.join(cwd, ".env-example");
-  const exResult = mergeAiCommitEnvFile(envExampleDest, examplePath, { force });
-  const exRel = path.relative(cwd, envExampleDest) || ".env-example";
+  const envExampleDest = resolveEnvExamplePath(packageRoot);
+  const exResult = mergeAiCommitEnvFile(envExampleDest, bundledExamplePath, { force });
+  const exRel = path.relative(cwd, envExampleDest) || path.basename(envExampleDest);
   switch (exResult.kind) {
     case "replaced":
       process.stdout.write(`Replaced ${exRel} with bundled template (--force).\n`);
@@ -140,17 +169,24 @@ function cmdInit(argv) {
     return;
   }
 
-  if (!isInGitRepo(cwd)) {
+  if (!inGit) {
     process.stdout.write(
-      "Not a git repository (or git unavailable); skipped Husky and package.json. Re-run from a repo root for hooks and scripts.\n",
+      "Not a git repository (or git unavailable); skipped Husky and package.json hooks. Run init from your app directory inside a git repo (with package.json there) for full setup.\n",
+    );
+    return;
+  }
+  if (!gitRoot) {
+    process.stderr.write(
+      "warning: could not resolve git repository root; skipped Husky and hooks.\n",
     );
     return;
   }
 
-  const huskyHelper = path.join(cwd, ".husky", "_", "husky.sh");
+  let { dir: huskyDir } = resolveGitHooksDir(gitRoot);
+  const huskyHelper = path.join(huskyDir, "_", "husky.sh");
 
   if (!fs.existsSync(huskyHelper)) {
-    const r = runHuskyInit(cwd);
+    const r = runHuskyInit(gitRoot);
     if (!r.ok) {
       process.stderr.write(
         r.error
@@ -160,14 +196,15 @@ function cmdInit(argv) {
       process.exit(1);
     }
     process.stdout.write("Ran `npx husky@9 init`.\n");
+    huskyDir = resolveGitHooksDir(gitRoot).dir;
   } else {
     process.stdout.write(
-      "Husky already initialized (found .husky/_/husky.sh); skipped `npx husky@9 init`.\n",
+      `Husky already initialized (found ${path.join(huskyDir, "_", "husky.sh")}); skipped \`npx husky@9 init\`.\n`,
     );
   }
 
   if (mergePackageJson) {
-    const pkgPath = path.join(cwd, "package.json");
+    const pkgPath = path.join(packageRoot, "package.json");
     if (fs.existsSync(pkgPath)) {
       const { changed } = mergePackageJsonForAiCommit(pkgPath);
       if (changed) {
@@ -177,16 +214,17 @@ function cmdInit(argv) {
       }
       warnIfPrepareMissingHusky(pkgPath);
     } else {
-      process.stdout.write("No package.json in this directory; skipped package.json merge (hooks still written).\n");
+      process.stdout.write(
+        "No package.json found walking up to the git root; skipped package.json merge (hooks still written).\n",
+      );
     }
   }
 
-  const huskyDir = path.join(cwd, ".husky");
   if (!fs.existsSync(huskyDir)) {
     fs.mkdirSync(huskyDir, { recursive: true });
   }
 
-  const execPrefix = detectPackageExec(cwd);
+  const execPrefix = detectPackageExec(packageRoot);
   const preparePath = path.join(huskyDir, "prepare-commit-msg");
   const commitMsgPath = path.join(huskyDir, "commit-msg");
 
@@ -194,7 +232,7 @@ function cmdInit(argv) {
     [preparePath, "prepare-commit-msg"],
     [commitMsgPath, "commit-msg"],
   ]) {
-    const body = hookScript(execPrefix, hookKind);
+    const body = hookScript(packageRoot, gitRoot, execPrefix, hookKind);
     if (fs.existsSync(hookPath) && !force) {
       process.stderr.write(`Skipped ${path.relative(cwd, hookPath)} (already exists). Use --force to overwrite.\n`);
     } else {
