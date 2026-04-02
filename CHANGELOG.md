@@ -1,3 +1,23 @@
+# v2.5.1 — 2026-04-02
+
+## Highlights
+- commit: Merge pull request #21 from verndale/feat/det-install (3b197e8)
+- fix(lib): Update README and CLI for improved clarity (48ab180)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Fixes
+- fix(lib): Update README and CLI for improved clarity (48ab180)
+
+### Other (unknown)
+- commit: Merge pull request #21 from verndale/feat/det-install (3b197e8)
+
+## Full commit list
+- 3b197e8 commit: Merge pull request #21 from verndale/feat/det-install
+- 48ab180 fix(lib): Update README and CLI for improved clarity
+
 # v2.5.0 — 2026-04-02
 
 ## Highlights
