@@ -1,3 +1,98 @@
+# v2.3.0 — 2026-04-01
+
+## Highlights
+- commit: Merge pull request #13 from verndale/feat/det-install (3ee031a)
+- feat(cli): Rename .env.example to .env-example for consistenc (0f0379f)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Features
+- feat(cli): Rename .env.example to .env-example for consistenc (0f0379f)
+
+### Other (unknown)
+- commit: Merge pull request #13 from verndale/feat/det-install (3ee031a)
+
+## Full commit list
+- 3ee031a commit: Merge pull request #13 from verndale/feat/det-install
+- 0f0379f feat(cli): Rename .env.example to .env-example for consistenc
+
+# v2.2.0 — 2026-04-01
+
+## Highlights
+- commit: Merge pull request #12 from verndale/feat/det-install (6840669)
+- feat(cli): create and merge .env.example on init (c25c19b)
+- chore(cli): Update README and CLI for improved init clarity (65fc9ca)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Features
+- feat(cli): create and merge .env.example on init (c25c19b)
+
+### Chore
+- chore(cli): Update README and CLI for improved init clarity (65fc9ca)
+
+### Other (unknown)
+- commit: Merge pull request #12 from verndale/feat/det-install (6840669)
+
+## Full commit list
+- 6840669 commit: Merge pull request #12 from verndale/feat/det-install
+- c25c19b feat(cli): create and merge .env.example on init
+- 65fc9ca chore(cli): Update README and CLI for improved init clarity
+
+# v2.1.0 — 2026-04-01
+
+## Highlights
+- commit: Merge pull request #11 from verndale/feat/det-install (b076aee)
+- feat(cli): publish init, env merge, and workspace setup (e879c47)
+- commit: Merge pull request #10 from verndale/feat/det-install (e28195c)
+- chore(lib): Update README and CLI for improved init command (f7f9287)
+- chore(lib): Update environment setup instructions in README (fbff9ca)
+- chore(cli): Update environment configuration and documentation (4485f87)
+- chore(ai-commit): Update .env.example with new environment variables (733da38)
+- commit: Merge pull request #9 from verndale/feat/ai-pr-integration (27f451b)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Features
+- feat(cli): publish init, env merge, and workspace setup (e879c47)
+
+### Chore
+- chore(ai-commit): Simplify environment variable examples (061c55a)
+- chore(ai-commit): Update .env.example with new environment variables (733da38)
+- chore(ci): Update commitlint workflow conditions (37d53df)
+- chore(ci): Update PR workflow to use new package (f8ea28c)
+- chore(cli): Update environment configuration and documentation (4485f87)
+- chore(lib): Update environment setup instructions in README (fbff9ca)
+- chore(lib): Update README and CLI for improved init command (f7f9287)
+
+### Other (unknown)
+- commit: Merge branch 'main' into feat/update-package (85b636a)
+- commit: Merge pull request #10 from verndale/feat/det-install (e28195c)
+- commit: Merge pull request #11 from verndale/feat/det-install (b076aee)
+- commit: Merge pull request #7 from verndale/feat/update-package (1e9bcb3)
+- commit: Merge pull request #9 from verndale/feat/ai-pr-integration (27f451b)
+
+## Full commit list
+- b076aee commit: Merge pull request #11 from verndale/feat/det-install
+- e879c47 feat(cli): publish init, env merge, and workspace setup
+- e28195c commit: Merge pull request #10 from verndale/feat/det-install
+- f7f9287 chore(lib): Update README and CLI for improved init command
+- fbff9ca chore(lib): Update environment setup instructions in README
+- 4485f87 chore(cli): Update environment configuration and documentation
+- 733da38 chore(ai-commit): Update .env.example with new environment variables
+- 27f451b commit: Merge pull request #9 from verndale/feat/ai-pr-integration
+- f8ea28c chore(ci): Update PR workflow to use new package
+- 37d53df chore(ci): Update commitlint workflow conditions
+- 1e9bcb3 commit: Merge pull request #7 from verndale/feat/update-package
+- 85b636a commit: Merge branch 'main' into feat/update-package
+- 061c55a chore(ai-commit): Simplify environment variable examples
+
 # v2.0.0 — 2026-04-01
 
 ## Highlights
