@@ -1,3 +1,45 @@
+# v2.4.0 — 2026-04-02
+
+## Highlights
+- commit: Merge pull request #15 from verndale/feat/det-install (da3dba3)
+- fix(ci): Update command in workflow and documentation (94690bd)
+- fix(ci): Update PR workflow command in configuration (913096c)
+- fix(lib): Update environment configuration for clarity (4d34b4e)
+- chore(lib): Update environment documentation for ai-commit (da33017)
+- commit: Merge branch 'main' into feat/det-install (20048e6)
+- chore(ai-commit): Update environment variables and package dependenc (04ab02a)
+- feat(ai-commit): Add initial hello world file (6a581aa)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Features
+- feat(ai-commit): Add initial hello world file (6a581aa)
+
+### Fixes
+- fix(ci): Update command in workflow and documentation (94690bd)
+- fix(ci): Update PR workflow command in configuration (913096c)
+- fix(lib): Update environment configuration for clarity (4d34b4e)
+
+### Chore
+- chore(ai-commit): Update environment variables and package dependenc (04ab02a)
+- chore(lib): Update environment documentation for ai-commit (da33017)
+
+### Other (unknown)
+- commit: Merge branch 'main' into feat/det-install (20048e6)
+- commit: Merge pull request #15 from verndale/feat/det-install (da3dba3)
+
+## Full commit list
+- da3dba3 commit: Merge pull request #15 from verndale/feat/det-install
+- 94690bd fix(ci): Update command in workflow and documentation
+- 913096c fix(ci): Update PR workflow command in configuration
+- 4d34b4e fix(lib): Update environment configuration for clarity
+- da33017 chore(lib): Update environment documentation for ai-commit
+- 20048e6 commit: Merge branch 'main' into feat/det-install
+- 04ab02a chore(ai-commit): Update environment variables and package dependenc
+- 6a581aa feat(ai-commit): Add initial hello world file
+
 # v2.3.0 — 2026-04-01
 
 ## Highlights
