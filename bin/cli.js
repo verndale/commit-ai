@@ -16,7 +16,7 @@ const {
   hasStagedChanges,
   commitFromFile,
 } = require("../lib/core/git.js");
-const { mergeAiCommitEnvFile, parseDotenvAssignedKeys } = require("../lib/init-env.js");
+const { mergeAiCommitEnvFile } = require("../lib/init-env.js");
 const { resolveEnvExamplePath, findPackageRoot } = require("../lib/init-paths.js");
 const {
   detectPackageExec,
@@ -45,7 +45,7 @@ Usage:
 
 Commands:
   run                  Generate a message from the staged diff and run git commit.
-  init                 Merge env, then Husky + package.json + hooks (from a git repo). \`--env-only\` stops after env files. \`--husky\` skips package.json. \`--force\` replaces \`.env\` / example env file / hooks (example path: existing \`.env.example\` or \`.env-example\`, default \`.env.example\`).
+  init                 Merge env, then Husky + package.json + hooks (from a git repo). \`--env-only\` stops after env files. \`--husky\` skips package.json. Env merge targets \`.env.local\` when that file exists, else \`.env\`. \`--force\` replaces \`.env\` / example file / hooks (not a wholesale replace of \`.env.local\`).
   prepare-commit-msg   Git hook: fill an empty commit message file (merge/squash skipped).
   lint                 Run commitlint with the package default config (for commit-msg hook).
 
@@ -99,14 +99,8 @@ function cmdInit(argv) {
   const gitRoot = inGit ? getGitRoot(cwd) : null;
   const packageRoot = findPackageRoot(cwd, gitRoot);
 
-  const extraAssignedKeys = new Set();
   const envLocalPath = path.join(packageRoot, ".env.local");
-  if (fs.existsSync(envLocalPath)) {
-    const localContent = fs.readFileSync(envLocalPath, "utf8");
-    for (const k of parseDotenvAssignedKeys(localContent)) {
-      extraAssignedKeys.add(k);
-    }
-  }
+  const envPath = path.join(packageRoot, ".env");
 
   if (
     inGit &&
@@ -118,12 +112,21 @@ function cmdInit(argv) {
     );
   }
 
-  const envDest = path.join(packageRoot, ".env");
-  const envResult = mergeAiCommitEnvFile(envDest, bundledExamplePath, {
-    force,
-    extraAssignedKeys,
+  /** When `.env.local` exists it is the only env merge target (no `.env` created or updated). */
+  const envMergePath = fs.existsSync(envLocalPath) ? envLocalPath : envPath;
+  const mergeEnvIntoLocal =
+    path.resolve(envMergePath) === path.resolve(envLocalPath);
+  /** Never `--force`-replace `.env.local` with the bundled template (would wipe secrets). */
+  const envForce = force && !mergeEnvIntoLocal;
+  if (force && mergeEnvIntoLocal) {
+    process.stderr.write(
+      "note: --force does not replace .env.local with the bundled template; ai-commit keys are merged (append / docs) only.\n",
+    );
+  }
+  const envResult = mergeAiCommitEnvFile(envMergePath, bundledExamplePath, {
+    force: envForce,
   });
-  const envRel = path.relative(cwd, envDest) || ".env";
+  const envRel = path.relative(cwd, envMergePath) || path.basename(envMergePath);
   switch (envResult.kind) {
     case "replaced":
       process.stdout.write(`Replaced ${envRel} with bundled template (--force).\n`);
@@ -136,7 +139,9 @@ function cmdInit(argv) {
       break;
     case "unchanged":
       process.stdout.write(
-        `No missing @verndale/ai-commit keys in ${envRel}; left unchanged. Use --force to replace the file with the bundled template.\n`,
+        mergeEnvIntoLocal
+          ? `No missing @verndale/ai-commit keys in ${envRel}; left unchanged.\n`
+          : `No missing @verndale/ai-commit keys in ${envRel}; left unchanged. Use --force to replace the file with the bundled template.\n`,
       );
       break;
     default:
