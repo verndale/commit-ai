@@ -1,3 +1,31 @@
+# v2.4.4 — 2026-04-02
+
+## Highlights
+- commit: Merge pull request #19 from verndale/feat/det-install (15e24cc)
+- commit: Merge pull request #18 from verndale/dependabot/npm_and_yarn/npm_and_yarn-52571dc7e9 (9db6bb5)
+- fix(ai-commit): Update README for improved clarity and structure (a017a66)
+- chore(deps): bump lodash in the npm_and_yarn group across 1 directory (d716068)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Fixes
+- fix(ai-commit): Update README for improved clarity and structure (a017a66)
+
+### Chore
+- chore(deps): bump lodash in the npm_and_yarn group across 1 directory (d716068)
+
+### Other (unknown)
+- commit: Merge pull request #18 from verndale/dependabot/npm_and_yarn/npm_and_yarn-52571dc7e9 (9db6bb5)
+- commit: Merge pull request #19 from verndale/feat/det-install (15e24cc)
+
+## Full commit list
+- 15e24cc commit: Merge pull request #19 from verndale/feat/det-install
+- 9db6bb5 commit: Merge pull request #18 from verndale/dependabot/npm_and_yarn/npm_and_yarn-52571dc7e9
+- a017a66 fix(ai-commit): Update README for improved clarity and structure
+- d716068 chore(deps): bump lodash in the npm_and_yarn group across 1 directory
+
 # v2.4.3 — 2026-04-02
 
 ## Highlights
