@@ -1,3 +1,23 @@
+# v2.5.4 — 2026-04-03
+
+## Highlights
+- commit: Merge pull request #24 from verndale/feat/polish (37c7f48)
+- fix(lib): Update README for clarity and improved instruction (ed248e7)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Fixes
+- fix(lib): Update README for clarity and improved instruction (ed248e7)
+
+### Other (unknown)
+- commit: Merge pull request #24 from verndale/feat/polish (37c7f48)
+
+## Full commit list
+- 37c7f48 commit: Merge pull request #24 from verndale/feat/polish
+- ed248e7 fix(lib): Update README for clarity and improved instruction
+
 # v2.5.3 — 2026-04-02
 
 ## Highlights
