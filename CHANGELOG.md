@@ -1,3 +1,23 @@
+# v2.6.0 — 2026-04-03
+
+## Highlights
+- commit: Merge pull request #26 from verndale/fix/commit-summary (5ee4ca8)
+- feat(lib): Improve subject truncation logic (d8a885c)
+
+## Breaking changes
+- None
+
+## Changes by type
+### Features
+- feat(lib): Improve subject truncation logic (d8a885c)
+
+### Other (unknown)
+- commit: Merge pull request #26 from verndale/fix/commit-summary (5ee4ca8)
+
+## Full commit list
+- 5ee4ca8 commit: Merge pull request #26 from verndale/fix/commit-summary
+- d8a885c feat(lib): Improve subject truncation logic
+
 # v2.5.5 — 2026-04-03
 
 ## Highlights
