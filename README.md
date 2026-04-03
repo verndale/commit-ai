@@ -1,126 +1,152 @@
 # @verndale/ai-commit
 
-AI-assisted [Conventional Commits](https://www.conventionalcommits.org/) with **bundled [commitlint](https://commitlint.js.org/)** so generated messages match the same rules enforced in hooks.
+AI-assisted [Conventional Commits](https://www.conventionalcommits.org/) with **bundled [commitlint](https://commitlint.js.org/)** so generated messages match the same rules enforced in Git hooks.
 
 ---
 
 ## Requirements
 
-| | |
+| Requirement | Notes |
 | --- | --- |
-| **Node.js** | `>=24.14.0` |
-| **Package manager** | This repo pins **pnpm** in `package.json`. Enable with [Corepack](https://nodejs.org/api/corepack.html): `corepack enable`. |
+| **Node.js** | `>=24.14.0` (see `engines` in `package.json`) |
+| **Package manager** | This repo uses **pnpm**. Enable with [Corepack](https://nodejs.org/api/corepack.html): `corepack enable`. |
 
 ---
 
-## Install
+## Quick start
+
+Do this **from the directory that contains your app’s `package.json`** (in a monorepo that is often **not** the git repository root).
+
+1. **Add the dependency**
+
+   ```bash
+   pnpm add -D @verndale/ai-commit
+   ```
+
+   npm and Yarn work too (`npm install -D @verndale/ai-commit`). Where this doc says `pnpm exec`, use `npx`, `yarn exec`, or your usual equivalent.
+
+2. **Run init** (merges env files, configures Husky when needed, writes hooks, updates `package.json` when applicable)
+
+   ```bash
+   pnpm exec ai-commit init
+   ```
+
+3. **Install dependencies** if init changed `package.json` or ran Husky for the first time — init prints a line like:
+
+   `Next: run \`pnpm install\` …` or `Next: run \`cd … && pnpm install\` …`
+
+   Run that command (it picks **pnpm** / **npm** / **yarn** / **bun** from the nearest lockfile).
+
+4. **Set your API key** in **`.env`** and/or **`.env.local`** (same directory as that `package.json`):
+
+   ```bash
+   OPENAI_API_KEY=sk-...
+   ```
+
+   If both files define a key, **`.env.local`** wins.
+
+---
+
+## How paths work
+
+| Term | Meaning |
+| --- | --- |
+| **Package root** | First directory **with `package.json`**, walking up from your current directory toward the git root. If none is found, the current working directory is used. Env files and `package.json` edits use this directory. |
+| **Git root** | `git rev-parse --show-toplevel`. Husky and hook files live here (or under `core.hooksPath`). |
+
+If package root and git root differ, hook scripts **`cd`** into the package root before running `ai-commit`.
+
+---
+
+## What `ai-commit init` does (default)
+
+**Environment**
+
+- Merges ai-commit-related keys into **`.env.local`** if that file exists; otherwise into **`.env`** (creates **`.env`** from the bundled template if missing). If **`.env.local`** exists, **`.env`** is not written for this merge.
+- **`--force`** never wholesale-replaces **`.env.local`** (append / document keys only).
+- Also updates the **example env file** on disk: prefers **`.env.example`**, then **`.env-example`**, else creates **`.env.example`**. If both **`.env.example`** and **`.env-example`** exist, **`.env.example`** is used and a warning is printed.
+- The **npm package** still ships the hyphenated template as [`.env-example`](.env-example).
+
+**Husky**
+
+- If **`.husky/_/husky.sh`** is missing under the resolved hooks directory, runs **`npx husky@9 init`** at the **git root**.
+- Hooks directory: Git’s **`core.hooksPath`** (relative to the git root), or **`<git-root>/.husky`**. Invalid or out-of-repo paths fall back to **`.husky`** at the git root with a warning.
+
+**`package.json` (at package root)**
+
+- Adds **`commit`**, **`prepare`**, and **`devDependencies.husky`** when missing.
+
+**Hook files**
+
+- Writes **`prepare-commit-msg`** and **`commit-msg`** in the hooks directory.
+- Removes Husky’s **default** **`.husky/pre-commit`** when it is only `npm` / `pnpm` / `yarn` **`test`** (so commits are not blocked by tests). Custom **pre-commit** files are left alone.
+
+---
+
+## Init flags
+
+| Flag | Behavior |
+| --- | --- |
+| *(none)* | Full setup: env files + Husky + hooks + `package.json` updates when applicable. |
+| **`--env-only`** | Only env / example-file merges — **no** Git hooks or Husky. |
+| **`--husky`** | Husky + hooks only — **skips** `package.json` merges. Use **`--workspace`** with **`--husky`** if you also need **`package.json`** updated again. |
+| **`--force`** | Replaces **`.env`** (when it is the merge target) and the resolved example file with the bundled template (**destructive**), and can overwrite existing hook files. Does **not** wholesale-replace **`.env.local`**. |
+
+### When behavior differs
+
+| Situation | What happens |
+| --- | --- |
+| **Not in a git repository** | Env files under the current directory are updated; init reports that Git / Husky / hooks were skipped. |
+| **Monorepo (package not at repo root)** | Run init from the **package folder** that has `package.json` and depends on `@verndale/ai-commit`. Hooks stay at the repo root; generated scripts `cd` into your package first. |
+| **`.env.local` exists** | Ai-commit keys are merged **only** into **`.env.local`**; **`.env`** is not created or updated for that merge. |
+| **Without `--force`** | Missing keys are **appended** to the env merge target and example file; existing values are not wiped. |
+
+---
+
+## Command cheat sheet
 
 ```bash
 pnpm add -D @verndale/ai-commit
-```
-
-**npm** and **yarn** work too (`npm install -D @verndale/ai-commit`). Where this doc says `pnpm exec`, use your tool’s equivalent (`npx`, `yarn exec`, etc.).
-
----
-
-## Setup
-
-Do these **in order** from the **app directory** where **`@verndale/ai-commit`** is installed — the folder that contains **`package.json`** (in a monorepo, that is often **not** the git repository root). Init updates **`.env`** / the example file there and installs hooks at the **git root** (with a `cd` in hook scripts when those paths differ).
-
-### 1. Install the package
-
-See [Install](#install).
-
-### 2. Run init
-
-```bash
 pnpm exec ai-commit init
+# Follow the printed "Next: run …" line if shown, then set OPENAI_API_KEY in .env or .env.local
 ```
 
-**What init does (by default):**
-
-| Action | Detail |
-| --- | --- |
-| Roots | **Package root** — walks up from the current directory toward the git root and uses the first directory that has **`package.json`** (if none, uses cwd). **Git root** — `git rev-parse --show-toplevel`. Env files and **`package.json`** use the package root; hooks use the git root. |
-| Env files | Merges ai-commit keys into **`.env.local`** when that file exists; otherwise into **`.env`** (creates **`.env`** from the bundled template if missing). **`.env`** is not used when **`.env.local`** is present. Also merges the **example env file** (see below). **`--force`** does not wholesale-replace **`.env.local`** (append / docs only). |
-| Example file | Uses **`.env.example`** if it exists; else **`.env-example`** if it exists; else creates **`.env.example`**. If both dot forms exist, init uses **`.env.example`** and prints a warning. The **bundled** template in the package remains [`.env-example`](.env-example) (hyphen). |
-| Husky | Runs **`npx husky@9 init`** at the **git root** if **`husky.sh`** is missing under the resolved hooks directory. |
-| Hooks directory | **`core.hooksPath`** relative to the git root when set; otherwise **`<git-root>/.husky`**. Falls back to **`.husky`** at the git root with a warning if the config path is invalid or outside the repo. |
-| `package.json` | Adds missing **`commit`**, **`prepare`**, **`husky`** entries when **`package.json`** exists at the package root. |
-| Hooks | Writes **`prepare-commit-msg`** and **`commit-msg`** in the hooks directory. If package root ≠ git root, each hook **`cd`s** into the package directory before **`pnpm exec ai-commit`** / **`npx`**. Removes a **stock** **`.husky/pre-commit`** that is only **`npm`**/**`pnpm`**/**`yarn`** **`test`** (Husky’s **`init`** default) so that hook does not block commits; custom **pre-commit** files are kept. |
-
-If **`package.json`** changed, run **`pnpm install`** (or `npm install`) again.
-
-### 3. Add your API key
-
-Set **`OPENAI_API_KEY`** in **`.env`** and/or **`.env.local`**. Duplicate keys: **`.env.local`** wins.
-
----
-
-### Init: flags and shortcuts
-
-| Flag | Use when |
-| --- | --- |
-| *(none)* | Full setup: env files + Husky + hooks + `package.json` updates (when applicable). |
-| `--env-only` | You only want env / example-file updates—no Git hooks. |
-| `--husky` | Hooks + Husky only; skips **`package.json`** changes. Combine with **`--workspace`** if you need **`package.json`** merged again. |
-| `--force` | Replace **`.env`** (when that is the merge target) and the resolved example file with the bundled template **(destructive)** and/or overwrite existing Husky hook files. Does **not** wholesale-replace **`.env.local`** (merge/append only). |
-
-**Edge cases**
-
-| Situation | Behavior |
-| --- | --- |
-| Not in a git repo | Init updates env files only (under cwd) and reports that Git/Husky were skipped. |
-| Monorepo (package not at git root) | Run **`ai-commit init`** from the app folder that has **`package.json`** and the dependency. Hooks live at the repo root; hook scripts change into the package directory before running **`ai-commit`**. |
-| **`.env.local`** | If this file exists, init merges ai-commit keys **only** here and does not create or update **`.env`** (see [Env files](#2-run-init) row). |
-| Bundled vs consumer example name | The npm package ships **`.env-example`** (hyphen) as the template source; the file init merges into on disk follows **`.env.example`** first, then **`.env-example`**, then default **`.env.example`**. |
-| Without **`--force`** | Missing example file is created (**`.env.example`** when neither dot form exists); otherwise missing ai-commit keys are **appended** to the env merge target (**`.env.local`** or **`.env`**) and the example file without wiping them. |
-
----
-
-### Setup — command cheat sheet
+Optional:
 
 ```bash
-pnpm add -D @verndale/ai-commit
-pnpm exec ai-commit init
-# Set OPENAI_API_KEY in .env or .env.local
-```
-
-Optional variants:
-
-```bash
-pnpm exec ai-commit init --env-only
-pnpm exec ai-commit init --husky
-pnpm exec ai-commit init --force
+pnpm exec ai-commit init --env-only   # env only, no hooks
+pnpm exec ai-commit init --husky      # hooks + Husky; skips package.json merge
+pnpm exec ai-commit init --force      # overwrite env/hooks per flag rules
 ```
 
 ---
 
 ## Environment variables
 
-| Variable | Notes |
+| Variable | Purpose |
 | --- | --- |
-| **`OPENAI_API_KEY`** | Required for **`ai-commit run`** and for AI in **`prepare-commit-msg`** when you want the model. |
-| **`COMMIT_AI_MODEL`** | Optional; default **`gpt-4o-mini`**. |
-| **Load order** | CLI loads **`.env`**, then **`.env.local`** (same key → `.env.local` wins). |
+| **`OPENAI_API_KEY`** | Required for **`ai-commit run`** and for AI-backed **`prepare-commit-msg`** when you want generation. |
+| **`COMMIT_AI_MODEL`** | Optional model id (default **`gpt-4o-mini`**). |
 
-**Comments:** If another tool already documents **`OPENAI_API_KEY`** or **`COMMIT_AI_MODEL`**, **`ai-commit init`** inserts a `# @verndale/ai-commit — …` line above the assignment when that line is missing. It does not remove existing comments.
+**Load order:** **`.env`**, then **`.env.local`** (later file wins on duplicate keys).
 
-**Other tooling (optional):** `PR_*` for [`@verndale/ai-pr`](https://www.npmjs.com/package/@verndale/ai-pr) and **`pnpm run pr:create`** / PR workflows; `RELEASE_NOTES_AI_*` for [`tools/semantic-release-notes.cjs`](./tools/semantic-release-notes.cjs). Use a GitHub PAT as **`GH_TOKEN`** or **`GITHUB_TOKEN`** when calling the GitHub API outside Actions.
+**Comments:** On merge, init may add a `# @verndale/ai-commit — …` line above assignments when missing; it does not remove existing comments.
+
+**Optional keys for other tools:** `PR_*` for [`@verndale/ai-pr`](https://www.npmjs.com/package/@verndale/ai-pr); `RELEASE_NOTES_AI_*` for [`tools/semantic-release-notes.cjs`](./tools/semantic-release-notes.cjs); use **`GH_TOKEN`** or **`GITHUB_TOKEN`** for GitHub API calls outside Actions.
 
 ---
 
 ## Commit policy (v2)
 
-- **Mandatory scope** — Headers are `type(scope): Subject` (or `type(scope)!:` when breaking). Scope comes from staged paths ([`lib/core/message-policy.js`](lib/core/message-policy.js)), not from the model, with fallback from `package.json` (e.g. `ai-commit`).
+- **Mandatory scope** — Headers look like `type(scope): Subject` or `type(scope)!:` when breaking. Scope is derived from staged paths ([`lib/core/message-policy.js`](lib/core/message-policy.js)), with fallback from `package.json` (e.g. `ai-commit`).
 - **Types** — `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`.
 - **Subject** — Imperative, Beams-style (first word capitalized), max **50** characters, no trailing period.
 - **Body / footer** — Wrap at **72** characters when present.
 - **Issues** — If branch or diff mentions `#123`, footers may add `Refs #n` / `Closes #n` (no invented numbers).
 - **Breaking changes** — Only when policy detects governance-related files (commitlint, Husky, this package’s rules/preset); otherwise `!` and `BREAKING CHANGE:` are stripped.
-- **Staged diff for AI** — Lockfile and common binary globs are excluded from the text sent to the model ([`lib/core/git.js`](lib/core/git.js)); path detection still uses the full staged file list.
+- **Staged diff for AI** — Lockfiles and common binary globs are excluded from the text sent to the model ([`lib/core/git.js`](lib/core/git.js)); path detection still uses the full staged file list.
 
-**Semver:** v2 tightens commitlint (mandatory scope, stricter lengths). If you `extends` this preset, review [`lib/rules.js`](lib/rules.js) and adjust overrides as needed.
+**Semver:** v2 tightens commitlint (mandatory scope, stricter lengths). If you extend this preset, review [`lib/rules.js`](lib/rules.js) and adjust overrides as needed.
 
 ---
 
@@ -129,9 +155,9 @@ pnpm exec ai-commit init --force
 | Command | Purpose |
 | --- | --- |
 | **`ai-commit run`** | Build a message from the staged diff and run **`git commit`**. |
-| **`ai-commit init`** | Env merge into **`.env.local`** or **`.env`** (see [Env files](#2-run-init)) plus resolved example file; Husky at git root if needed, **`package.json`** at package root, hooks in **`core.hooksPath`** or **`.husky`**. See [flags](#init-flags-and-shortcuts). |
+| **`ai-commit init`** | Merge env files; configure Husky and hooks; update `package.json` when applicable. See [Init flags](#init-flags). |
 | **`ai-commit prepare-commit-msg <file> [source]`** | Hook: fill an empty message; skips `merge` / `squash`. |
-| **`ai-commit lint --edit <file>`** | Hook: commitlint with this package’s default config. |
+| **`ai-commit lint --edit <file>`** | Hook: run commitlint with this package’s default config. |
 
 ---
 
@@ -149,7 +175,7 @@ pnpm exec ai-commit init --force
 
 ## Husky (manual setup)
 
-**`pnpm exec ai-commit init`** configures Husky for you. To add hooks by hand, install Husky (`husky` + `"prepare": "husky"` in `package.json` if needed), then add:
+**`pnpm exec ai-commit init`** sets up Husky for you. To add hooks manually, install **`husky`** and ensure **`"prepare": "husky"`** in `package.json`, then add:
 
 **`.husky/prepare-commit-msg`**
 
@@ -169,11 +195,11 @@ pnpm exec ai-commit prepare-commit-msg "$1" "$2"
 pnpm exec ai-commit lint --edit "$1"
 ```
 
-Hooks from **`init`** use **`pnpm exec ai-commit`** when **`pnpm-lock.yaml`** exists in the **package root**; otherwise **`npx --no ai-commit`**. In a monorepo, generated hooks **`cd`** from the git root into that package directory first. Edit the files if you use another runner.
+**Generated hooks** use **`pnpm exec ai-commit`** when **`pnpm-lock.yaml`** exists at the **package root**; otherwise **`npx --no ai-commit`**. In a monorepo, hooks **`cd`** from the git root into the package directory first. Edit the scripts if you use another runner.
 
-**`pre-commit`:** Husky’s **`init`** often adds **`.husky/pre-commit`** with only **`pnpm test`** (or **`npm test`** / **`yarn test`**). That can block **`git commit`** when tests fail. On each **`ai-commit init`**, **`init`** removes **only** that stock one-liner (or the same command behind a minimal **`husky.sh`** wrapper). If you add other lines (e.g. **lint-staged**), the file is left unchanged. Add your own **pre-commit** or rely on **CI** if you still want tests on every commit.
+**Default `pre-commit`:** Husky’s init often adds **`.husky/pre-commit`** with only **`pnpm test`** (or **`npm test`** / **`yarn test`**), which can block **`git commit`**. Each **`ai-commit init`** removes **only** that stock one-liner (or the same command behind a minimal **`husky.sh`** wrapper). If you add other lines (e.g. lint-staged), the file is unchanged.
 
-**Already using Husky?** If **`.husky/_/husky.sh`** exists, **`init`** does not run **`npx husky@9 init`**. **`package.json`** is only amended for missing **`commit`**, **`prepare`**, or **`devDependencies.husky`**. Existing **`.husky/prepare-commit-msg`** and **`.husky/commit-msg`** are not overwritten unless you use **`ai-commit init --force`**.
+**Already using Husky?** If **`.husky/_/husky.sh`** exists, **`npx husky@9 init`** is not run again. **`package.json`** is only amended for missing **`commit`**, **`prepare`**, or **`devDependencies.husky`**. Existing **`prepare-commit-msg`** and **`commit-msg`** hooks are not overwritten unless you use **`ai-commit init --force`**.
 
 ---
 
@@ -202,7 +228,7 @@ const rules = require("@verndale/ai-commit/rules");
 
 ## GitHub Actions (CI snippet)
 
-Use **commitlint in your own workflow file** — nothing calls back to the `ai-commit` repository’s pipelines. After `pnpm add -D @verndale/ai-commit`, add a root **`commitlint.config.cjs`** (or `.js`) that **`extends: ["@verndale/ai-commit"]`** as in [commitlint without a second install](#commitlint-without-a-second-install). **`@commitlint/cli`** is already a dependency of this package, so `pnpm exec commitlint` works once dependencies are installed.
+Use commitlint in **your** workflow — nothing calls back to this repository’s pipelines. After `pnpm add -D @verndale/ai-commit`, add a root **`commitlint.config.cjs`** (or `.js`) that **`extends: ["@verndale/ai-commit"]`** as above. **`@commitlint/cli`** is a dependency of this package, so `pnpm exec commitlint` works after install.
 
 Save as **`.github/workflows/commitlint.yml`** (or merge the job into an existing workflow). Adjust **`branches`** / **`branches-ignore`** if your default branch is not **`main`**.
 
@@ -270,14 +296,14 @@ jobs:
           pnpm exec commitlint --from=HEAD~1 --to=HEAD --verbose
 ```
 
-**Notes**
+**Workflow notes**
 
 | Topic | Detail |
 | --- | --- |
-| **Node** | Use a version that satisfies this package’s **`engines.node`** (see [Requirements](#requirements)). |
-| **npm or Yarn** | Replace the Corepack + pnpm steps with your install (`npm ci`, `yarn install --immutable`, etc.) and run **`npx --no commitlint`** or **`yarn exec commitlint`** instead of **`pnpm exec commitlint`**. |
-| **Config path** | If commitlint does not find your config (non-root monorepo, unusual filename), add **`--config path/to/commitlint.config.cjs`** to each **`commitlint`** invocation. |
-| **Alignment with hooks** | The same rules apply as for **`.husky/commit-msg`** when it runs **`ai-commit lint --edit`** — both use the **`@verndale/ai-commit`** preset. |
+| **Node** | Use a version that satisfies **`engines.node`** (see [Requirements](#requirements)). |
+| **npm or Yarn** | Replace Corepack + pnpm with your install (`npm ci`, `yarn install --immutable`, etc.) and use **`npx --no commitlint`** or **`yarn exec commitlint`**. |
+| **Config path** | If commitlint cannot find your config, add **`--config path/to/commitlint.config.cjs`** to each invocation. |
+| **Same rules as hooks** | Matches **`.husky/commit-msg`** when it runs **`ai-commit lint --edit`** — both use the **`@verndale/ai-commit`** preset. |
 
 ---
 
@@ -288,11 +314,11 @@ corepack enable
 pnpm install
 ```
 
-Copy **`.env-example`** to `.env` / `.env.local` and set **`OPENAI_API_KEY`**. After staging, **`pnpm commit`** runs **`node ./bin/cli.js run`**; published installs use the **`ai-commit`** binary under **`node_modules/.bin`**. Local **`.husky`** hooks use **`pnpm exec ai-commit`**.
+Copy **`.env-example`** to `.env` or `.env.local` and set **`OPENAI_API_KEY`**. After staging, **`pnpm commit`** runs **`node ./bin/cli.js run`**; published installs use the **`ai-commit`** binary under **`node_modules/.bin`**. Local **`.husky`** hooks use **`pnpm exec ai-commit`**.
 
 ### Repository automation
 
-To run the same style of checks in **another** repository, copy the workflow in [GitHub Actions (CI snippet)](#github-actions-ci-snippet) (self-contained YAML; no call into this repo’s Actions).
+To run similar checks in **another** repository, copy the workflow in [GitHub Actions (CI snippet)](#github-actions-ci-snippet).
 
 | Workflow | Trigger | Purpose |
 | --- | --- | --- |
@@ -310,7 +336,7 @@ Releases run via **[semantic-release](https://github.com/semantic-release/semant
 
 ### Secrets and registry
 
-- **`NPM_TOKEN`** (repo or org secret) — must **`npm publish`** in CI **without** an interactive OTP. The Release workflow sets **`NPM_TOKEN`** and **`NODE_AUTH_TOKEN`** from it.
+- **`NPM_TOKEN`** (repo or org secret) — must allow **`npm publish`** in CI **without** an interactive OTP. The Release workflow sets **`NPM_TOKEN`** and **`NODE_AUTH_TOKEN`** from it.
   - **If the job fails with `EOTP` / “one-time password”:** 2FA is enforced on publish and the token cannot skip OTP. Fix in one of these ways:
     - **Classic token:** [npmjs.com](https://www.npmjs.com/) → **Access Tokens** → **Generate New Token** (classic) → type **Automation** (not “Publish”). Store as **`NPM_TOKEN`**.
     - **Granular token:** **New Granular Access Token** → enable **Bypass two-factor authentication (2FA)**. Under **Packages and scopes**, **Read and write** for **`@verndale/ai-commit`**. Leave **Allowed IP ranges** empty unless required (Actions egress is not a single fixed IP).
