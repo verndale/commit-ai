@@ -20,6 +20,8 @@ const { mergeAiCommitEnvFile } = require("../lib/init-env.js");
 const { resolveEnvExamplePath, findPackageRoot } = require("../lib/init-paths.js");
 const {
   detectPackageExec,
+  detectPackageInstallInfo,
+  formatPackageInstallLine,
   hookScript,
   runHuskyInit,
   removeHuskyDefaultPreCommitIfPresent,
@@ -190,6 +192,7 @@ function cmdInit(argv) {
 
   let { dir: huskyDir } = resolveGitHooksDir(gitRoot);
   const huskyHelper = path.join(huskyDir, "_", "husky.sh");
+  let ranHuskyInit = false;
 
   if (!fs.existsSync(huskyHelper)) {
     const r = runHuskyInit(gitRoot);
@@ -201,6 +204,7 @@ function cmdInit(argv) {
       );
       process.exit(1);
     }
+    ranHuskyInit = true;
     process.stdout.write("Ran `npx husky@9 init`.\n");
     huskyDir = resolveGitHooksDir(gitRoot).dir;
   } else {
@@ -209,13 +213,15 @@ function cmdInit(argv) {
     );
   }
 
+  let packageJsonChanged = false;
   if (mergePackageJson) {
     const pkgPath = path.join(packageRoot, "package.json");
     if (fs.existsSync(pkgPath)) {
       const { changed } = mergePackageJsonForAiCommit(pkgPath);
+      packageJsonChanged = changed;
       if (changed) {
         process.stdout.write(
-          "Updated package.json (commit script, prepare, and/or devDependencies.husky). Run your package manager install if you added dependencies.\n",
+          "Updated package.json (commit script, prepare, and/or devDependencies.husky).\n",
         );
       }
       warnIfPrepareMissingHusky(pkgPath);
@@ -257,6 +263,11 @@ function cmdInit(argv) {
       }
       process.stdout.write(`Wrote ${path.relative(cwd, hookPath)}.\n`);
     }
+  }
+
+  if (packageJsonChanged || ranHuskyInit) {
+    const installInfo = detectPackageInstallInfo(packageRoot, gitRoot);
+    process.stdout.write(`${formatPackageInstallLine(installInfo, cwd)}\n`);
   }
 }
 
